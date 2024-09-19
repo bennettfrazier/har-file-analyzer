@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HAR File Analyzer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <h1>HAR File Analyzer</h1>
+    <input type="file" id="fileInput" accept=".har">
+    <br>
+    <div class="buttonActions">
+        <div>
+            <label for="filter">Search Data:</label>
+            <input type="text" id="filter" placeholder="Enter search term...">
+        </div>
+        <div>
+            <button id="resetSelection">Reset Selection</button>
+            <button id="toggleExportType">Switch to Grouped Export</button>
+            <button id="toggleViewMode">Show Response Content Only</button>
+        </div>
+    </div>
+    <!-- Column toggles -->
+    <div id="columnToggles">
+        <strong>Toggle Columns:</strong>
+        <label><input type="checkbox" class="column-toggle" data-column="queryString" checked> Query String</label>
+        <label><input type="checkbox" class="column-toggle" data-column="url" checked> URL</label>
+        <label><input type="checkbox" class="column-toggle" data-column="startedDateTime" checked> Started
+            DateTime</label>
+        <label><input type="checkbox" class="column-toggle" data-column="method" checked> Method</label>
+        <label><input type="checkbox" class="column-toggle" data-column="status" checked> Status</label>
+        <label><input type="checkbox" class="column-toggle" data-column="statusText"> Status Text</label>
+        <label><input type="checkbox" class="column-toggle" data-column="time" checked> Time (ms)</label>
+    </div>
+
+    <table id="entriesTable">
+        <thead>
+            <tr>
+                <th data-column="select"><input type="checkbox" id="selectAll">
+                    <div class="resizer"></div>
+                </th>
+                <th data-column="startedDateTime">Started DateTime<div class="resizer"></div>
+                </th>
+                <th data-column="method">Method<div class="resizer"></div>
+                </th>
+                <th data-column="url">URL<div class="resizer"></div>
+                </th>
+                <th data-column="queryString">Query String<div class="resizer"></div>
+                </th>
+                <th data-column="status">Status<div class="resizer"></div>
+                </th>
+                <th data-column="statusText">Status Text<div class="resizer"></div>
+                </th>
+                <th data-column="time">Time (ms)<div class="resizer"></div>
+                </th>
+            </tr>
+        </thead>
+        <tbody id="entriesBody">
+        </tbody>
+    </table>
+
+    <div class="stickyActionBar">
+        <button id="downloadSelected">Download Selected Entries</button>
+
+    </div>
+
+    <div id="searchResults" style="display:none;">
+        <h3>Search Results</h3>
+        <ul id="searchResultsList"></ul>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
