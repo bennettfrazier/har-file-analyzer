@@ -410,6 +410,8 @@ function buildJsonTree(container, data, path, seen, dataRoot) {
                 // Display the formatted string
                 const pre = document.createElement('pre');
                 pre.textContent = formatJSONString(textContent);
+
+                addCopyButtonToPre(pre);
                 li.appendChild(pre);
             }
 
@@ -550,6 +552,7 @@ function buildJsonTree(container, data, path, seen, dataRoot) {
                         // Display the formatted string
                         const pre = document.createElement('pre');
                         pre.textContent = formatJSONString(textContent);
+                        addCopyButtonToPre(pre);
                         li.appendChild(pre);
                     }
                 } else if (isObject) {
@@ -577,6 +580,82 @@ function buildJsonTree(container, data, path, seen, dataRoot) {
     }
 
     container.appendChild(ul);
+}
+
+function addCopyButtonToPre(preElement) {
+    // Check if the element is a <pre>
+    if (!(preElement instanceof HTMLElement) || preElement.tagName.toLowerCase() !== 'pre') {
+        console.error('addCopyButtonToPre: Provided element is not a <pre> element.');
+        return;
+    }
+
+    // Avoid adding multiple buttons to the same <pre>
+    if (preElement.querySelector('.copy-button')) {
+        console.warn('addCopyButtonToPre: <pre> element already has a copy button.');
+        return;
+    }
+
+    // Create the button element
+    const button = document.createElement('button');
+    button.className = 'copy-button';
+    button.textContent = 'Copy';
+
+    // Define the copy action
+    button.addEventListener('click', async () => {
+        // Disable the button to prevent multiple clicks
+        button.disabled = true;
+
+        try {
+            // Clone the <pre> element to exclude the button's text
+            const clone = preElement.cloneNode(true);
+            const buttonInClone = clone.querySelector('.copy-button');
+            if (buttonInClone) {
+                buttonInClone.remove(); // Remove the button from the clone
+            }
+
+            // Get the text content from the cloned <pre>
+            const textToCopy = clone.textContent.trim();
+
+            // Use the Clipboard API if available
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(textToCopy);
+            } else {
+                // Fallback method for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                // Prevent scrolling to bottom
+                textarea.style.position = 'fixed';
+                textarea.style.top = '0';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+
+                const successful = document.execCommand('copy');
+                if (!successful) throw new Error('Failed to copy text');
+
+                document.body.removeChild(textarea);
+            }
+
+            // Provide feedback to the user
+            button.textContent = 'Copied!';
+            button.classList.add('copied');
+
+            // Revert the button text after 2 seconds
+            setTimeout(() => {
+                button.textContent = 'Copy';
+                button.classList.remove('copied');
+                button.disabled = false;
+            }, 2000);
+        } catch (err) {
+            console.error('Error copying text: ', err);
+            alert('Failed to copy text. Please try again.');
+            button.disabled = false;
+        }
+    });
+
+    // Append the button to the <pre> element
+    preElement.appendChild(button);
 }
 
 function formatJSONString(jsonString) {
