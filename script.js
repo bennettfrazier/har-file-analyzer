@@ -1092,46 +1092,6 @@ document.getElementById('downloadSelected').addEventListener('click', function (
 
         const unescapedCombinedData = unescapeCombinedData(combinedData);
 
-        // function extractDataByKeys(data, parentIdentifier, keys) {
-        //     const result = [];
-
-        //     // If type is array, extract data from each item in the array
-        //     if (Array.isArray(data)) {
-        //         data.forEach(item => {
-        //             extractDataByKeys(item, parentIdentifier, keys);
-        //         });
-        //     }
-
-        //     function traverse(node, currentPath) {
-        //         if (typeof node !== 'object' || node === null) return;
-
-        //         if (currentPath.join('.') === parentIdentifier) {
-        //             const extractedData = {};
-        //             keys.forEach(key => {
-        //                 if (node.hasOwnProperty(key)) {
-        //                     extractedData[key] = node[key];
-        //                 }
-        //             });
-        //             result.push(extractedData);
-        //         }
-
-        //         for (const key in node) {
-        //             if (node.hasOwnProperty(key)) {
-        //                 traverse(node[key], currentPath.concat(key));
-        //             }
-        //         }
-        //     }
-
-        //     traverse(data, []);
-        //     return result;
-        // }
-
-        // const parentIdentifier = "response.content.text.included";
-        // const keysToExtract = ["firstName", "lastName", "headline"];
-        // const extractedData = extractDataByKeys(unescapedCombinedData, parentIdentifier, keysToExtract);
-
-        // console.log('Extracted Data:', extractedData);
-
         downloadJSON(unescapedCombinedData, 'selected_entries.json');
     } else if (exportType === 'grouped') {
         const groupedData = {};
