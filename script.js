@@ -516,7 +516,6 @@ function buildJsonTree(container, data, path, seen, dataRoot) {
                     }
 
                     let mimeType = parentData && parentData.mimeType ? parentData.mimeType : 'text/plain';
-
                     let parsedValue;
                     let parsingSucceeded = false;
 
@@ -526,6 +525,27 @@ function buildJsonTree(container, data, path, seen, dataRoot) {
                             parsingSucceeded = true;
                         } catch (e) {
                             console.warn('Failed to parse JSON from text field:', e);
+                        }
+                    }
+
+                    if (mimeType.includes('charset=UTF-8')) {
+                        console.log('mimeType.includes(charset=UTF-8)');
+                        try {
+                            parsedValue = decodeURIComponent(value);
+                            console.log('parsedValue', parsedValue);
+                            parsingSucceeded = true;
+                        } catch (e) {
+                            console.warn('Failed to decode content:', value);
+                        }
+                    }
+
+                    // last try with a custom mimeType unescaping, that is actually utf-8 encoded json but doesn't say it
+                    else {
+                        try {
+                            parsedValue = recursiveUnescape(value);
+                            parsingSucceeded = true;
+                        } catch (e) {
+                            console.warn('Failed to decode content:', value);
                         }
                     }
 
@@ -665,6 +685,47 @@ function formatJSONString(jsonString) {
     } catch (e) {
         // If parsing fails, return the original string
         return jsonString;
+    }
+}
+
+function unescapeNestedJson(s) {
+    try {
+        return JSON.parse(s);
+    } catch (error) {
+        return s.replace(/\\"/g, '"');
+    }
+}
+
+function recursiveUnescape(obj) {
+    if (typeof obj === 'string') {
+        // Throw an error for a specific test case
+        if (obj.includes('TEST_FAIL_CONDITION')) {
+            throw new Error('Test failure condition met');
+        }
+        return unescapeNestedJson(obj);
+    } else if (Array.isArray(obj)) {
+        return obj.map(recursiveUnescape);
+    } else if (typeof obj === 'object' && obj !== null) {
+        return Object.fromEntries(
+            Object.entries(obj).map(([k, v]) => [k, recursiveUnescape(v)])
+        );
+    } else {
+        return obj;
+    }
+}
+
+function convertUTF8ToJSON(value) {
+    try {
+        // First, try to decode the string using UTF-8
+        const decodedString = new TextDecoder('utf-8').decode(new Uint8Array(value.split('').map(c => c.charCodeAt(0))));
+
+        // If successful, parse it as JSON
+        return JSON.parse(decodedString);
+    } catch (e) {
+        console.warn('Failed to decode or parse content:', e.message);
+
+        // If decoding or parsing fails, return the original value
+        return value;
     }
 }
 
@@ -835,9 +896,13 @@ function collectGroupedData(data, selectionKeys, groupedData, path = [], seen = 
                 } catch (e) {
                     console.warn('Failed to decode base64 content:', e);
                 }
+            } else if (parentData && parentData.encoding === 'utf-8') {
+                try {
+                    textContent = decodeURIComponent(data);
+                } catch (e) {
+                    console.warn('Failed to decode content:', e);
+                }
             }
-
-
 
             // Attempt to parse the JSON string
             try {
@@ -916,6 +981,7 @@ function recursiveParse(input) {
 function downloadJSON(data, filename) {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
+
 
     const a = document.createElement('a');
     a.href = url;
@@ -1002,7 +1068,71 @@ document.getElementById('downloadSelected').addEventListener('click', function (
             return;
         }
 
-        downloadJSON(combinedData, 'selected_entries.json');
+        // Recursively unescape all string values in the combined data
+        const unescapeCombinedData = (data) => {
+            if (Array.isArray(data)) {
+                return data.map(item => unescapeCombinedData(item));
+            } else if (typeof data === 'object' && data !== null) {
+                const unescapedObj = {};
+                for (const [key, value] of Object.entries(data)) {
+                    unescapedObj[key] = unescapeCombinedData(value);
+                }
+                return unescapedObj;
+            } else if (typeof data === 'string') {
+                try {
+                    return recursiveUnescape(data);
+                } catch (e) {
+                    console.warn('Failed to unescape string:', data);
+                    return data;
+                }
+            } else {
+                return data;
+            }
+        };
+
+        const unescapedCombinedData = unescapeCombinedData(combinedData);
+
+        // function extractDataByKeys(data, parentIdentifier, keys) {
+        //     const result = [];
+
+        //     // If type is array, extract data from each item in the array
+        //     if (Array.isArray(data)) {
+        //         data.forEach(item => {
+        //             extractDataByKeys(item, parentIdentifier, keys);
+        //         });
+        //     }
+
+        //     function traverse(node, currentPath) {
+        //         if (typeof node !== 'object' || node === null) return;
+
+        //         if (currentPath.join('.') === parentIdentifier) {
+        //             const extractedData = {};
+        //             keys.forEach(key => {
+        //                 if (node.hasOwnProperty(key)) {
+        //                     extractedData[key] = node[key];
+        //                 }
+        //             });
+        //             result.push(extractedData);
+        //         }
+
+        //         for (const key in node) {
+        //             if (node.hasOwnProperty(key)) {
+        //                 traverse(node[key], currentPath.concat(key));
+        //             }
+        //         }
+        //     }
+
+        //     traverse(data, []);
+        //     return result;
+        // }
+
+        // const parentIdentifier = "response.content.text.included";
+        // const keysToExtract = ["firstName", "lastName", "headline"];
+        // const extractedData = extractDataByKeys(unescapedCombinedData, parentIdentifier, keysToExtract);
+
+        // console.log('Extracted Data:', extractedData);
+
+        downloadJSON(unescapedCombinedData, 'selected_entries.json');
     } else if (exportType === 'grouped') {
         const groupedData = {};
 
